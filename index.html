@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>リゲル — メーカーズコロシアム</title>
+<!--
+  第2回 メーカーズコロシアム (2026-12-04・大田区) の発表のスライド。前半 1 分でリゲルを説明し、後半 2 分は実演。
+  ネットが無くても動く (字体は Mac に入っているもの・絵と映像は assets/ に入っている)。Chrome で開く。
+
+  操作: → / Space / Enter / クリック で次へ、← で戻る。F 全画面。P 発表者の窓 (台本・時間)。
+        B 画面を黒く (腕に目を向けてもらう)。T タイマー・R はじめから。D 実演を選ぶ。V 予備の映像。H 操作の一覧。
+  台本 (NOTES) と実演の手順 (DEMO) は、下の <script> のはじめで直せる。
+-->
+<style>
+  :root {
+    --bg:#0B0B0C; --paper:#F3EFE6; --dim:rgba(243,239,230,.56); --faint:rgba(243,239,230,.14);
+    --acc:#FFB938; --red:#FF5A4E; --ice:#A8DFFF;
+    --sans:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+    --serif:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;
+    --en:"Helvetica Neue",Arial,sans-serif;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { width:100%; height:100%; background:#000; color:var(--paper); font-family:var(--sans); overflow:hidden; }
+  body { cursor:default; -webkit-font-smoothing:antialiased; }
+
+  /* 1920×1080 の舞台を、窓に合わせて拡大・縮小する */
+  #stage { position:absolute; left:50%; top:50%; width:1920px; height:1080px; transform-origin:0 0; background:var(--bg); overflow:hidden; }
+  .slide { position:absolute; inset:0; padding:120px 140px 110px; opacity:0; visibility:hidden; transition:opacity .5s ease, visibility 0s linear .5s; }
+  .slide.on { opacity:1; visibility:visible; transition:opacity .5s ease; }
+
+  /* 上の帯と下の番号 */
+  .bar { position:absolute; left:140px; right:140px; top:40px; height:56px; display:flex; justify-content:space-between; align-items:center; z-index:5; pointer-events:none; }
+  .bar .right { display:flex; align-items:center; gap:30px; }
+
+  /* 全スライド共通のタイマー (右上)。クリックか T で始める・止める */
+  #timer { pointer-events:auto; cursor:pointer; position:relative; display:flex; align-items:baseline; gap:10px; padding:10px 20px 14px; border-radius:14px;
+    background:rgba(243,239,230,.06); border:1.5px solid var(--faint); font-family:var(--en); transition:border-color .3s, background .3s; }
+  #timer .t { font-weight:700; font-size:34px; letter-spacing:.02em; color:var(--paper); min-width:78px; text-align:right; font-variant-numeric:tabular-nums; }
+  #timer .of { font-size:18px; color:var(--dim); letter-spacing:.06em; }
+  #timer .ph { font-family:var(--sans); font-size:15px; color:var(--dim); margin-left:4px; }
+  #timer .track { position:absolute; left:20px; right:20px; bottom:7px; height:3px; border-radius:2px; background:rgba(243,239,230,.12); }
+  #timer .fill { position:absolute; left:0; top:0; bottom:0; width:0; border-radius:2px; background:var(--paper); }
+  #timer .tick { position:absolute; top:-3px; width:2px; height:9px; background:var(--acc); }
+  #timer.idle .t, #timer.idle .fill { opacity:.45; }
+  #timer.paused .t { animation:blink 1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity:.25; } }
+  #timer.warn { border-color:var(--acc); background:rgba(255,185,56,.12); }
+  #timer.warn .t, #timer.warn .ph { color:var(--acc); } #timer.warn .fill { background:var(--acc); }
+  #timer.over { border-color:var(--red); background:rgba(255,90,78,.16); }
+  #timer.over .t, #timer.over .ph { color:var(--red); } #timer.over .fill { background:var(--red); }
+  .en { font-family:var(--en); font-weight:500; font-size:19px; letter-spacing:.34em; text-transform:uppercase; color:var(--dim); white-space:nowrap; }
+  .en b { color:var(--acc); font-weight:600; }
+  #count { position:absolute; right:140px; bottom:44px; z-index:5; font-family:var(--en); font-size:18px; letter-spacing:.2em; color:var(--dim); }
+
+  /* 文字が下からせり上がる */
+  .rv { display:block; overflow:hidden; }
+  .rv > * { display:block; transform:translateY(110%); }
+  .on .rv > * { animation:rise .9s cubic-bezier(.2,.8,.2,1) forwards; animation-delay:var(--d,0s); }
+  @keyframes rise { to { transform:none; } }
+  .fade { opacity:0; }
+  .on .fade { animation:fadein .9s ease forwards; animation-delay:var(--d,0s); }
+  @keyframes fadein { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+  .hl { height:2px; background:var(--acc); width:0; }
+  .on .hl { animation:grow 1s cubic-bezier(.2,.8,.2,1) forwards; animation-delay:var(--d,0s); }
+  @keyframes grow { to { width:var(--w,120px); } }
+
+  h2 { font-weight:700; font-size:76px; line-height:1.22; letter-spacing:.02em; }
+  .serif { font-family:var(--serif); font-weight:600; }
+  .acc { color:var(--acc); }
+  .src { position:absolute; left:140px; bottom:44px; font-size:16px; color:var(--dim); line-height:1.6; max-width:1300px; }
+
+  /* 写真・映像の枠 (少し傾いて浮く) */
+  .frame { position:relative; border-radius:18px; overflow:hidden; background:#111; box-shadow:0 40px 90px rgba(0,0,0,.6), 0 0 120px rgba(120,160,255,.12); }
+  .frame img, .frame video { display:block; width:100%; height:100%; object-fit:cover; }
+
+  /* ---- 0 表紙 */
+  #s-title .left { position:absolute; left:140px; top:250px; width:880px; }
+  #s-title .name { font-family:var(--serif); font-weight:600; font-size:220px; line-height:1; letter-spacing:.08em; }
+  #s-title .tag { font-family:var(--serif); font-weight:600; font-size:64px; margin-top:34px; letter-spacing:.06em; }
+  #s-title .sub { font-size:34px; font-weight:300; color:var(--dim); margin-top:44px; letter-spacing:.04em; }
+  #s-title .sub b { color:var(--paper); font-weight:600; }
+  #s-title .photo { position:absolute; right:150px; top:170px; width:660px; height:740px; transform:rotate(2.2deg); }
+  #s-title .photo img { object-position:40% 50%; }
+  #s-title .orbglow { position:absolute; right:60px; top:60px; width:900px; height:900px; border-radius:50%;
+    background:radial-gradient(circle, rgba(110,170,255,.20), rgba(110,170,255,0) 62%); pointer-events:none; }
+  #s-title .event { position:absolute; left:140px; bottom:110px; font-size:24px; color:var(--dim); letter-spacing:.08em; }
+
+  /* ---- 1 課題 */
+  #s-problem .quotes { position:absolute; left:140px; top:500px; display:flex; flex-direction:column; gap:26px; }
+  #s-problem .q { font-family:var(--serif); font-weight:600; font-size:54px; }
+  #s-problem .who { position:absolute; left:140px; top:850px; font-size:26px; color:var(--dim); }
+  #s-problem .stats { position:absolute; right:140px; top:470px; width:640px; display:flex; flex-direction:column; gap:52px; }
+  #s-problem .num { font-family:var(--en); font-weight:700; font-size:132px; line-height:1; color:var(--acc); letter-spacing:-.01em; }
+  #s-problem .num small { font-family:var(--sans); font-size:46px; font-weight:700; margin-left:8px; }
+  #s-problem .cap { font-size:26px; line-height:1.55; color:var(--paper); margin-top:12px; }
+  #s-problem .cap span { color:var(--dim); }
+
+  /* ---- 2 しくみ (3 つでひとつ) */
+  #s-three .cols { position:absolute; left:140px; right:140px; top:420px; display:grid; grid-template-columns:repeat(3,1fr); gap:44px; }
+  #s-three .col { border-top:2px solid var(--faint); padding-top:34px; }
+  #s-three .col .no { font-family:var(--en); font-size:22px; letter-spacing:.3em; color:var(--acc); }
+  #s-three .col .verb { font-family:var(--serif); font-weight:600; font-size:100px; margin-top:14px; }
+  #s-three .col .who { font-size:34px; font-weight:700; margin-top:26px; }
+  #s-three .col .what { font-size:28px; line-height:1.65; color:var(--dim); margin-top:16px; }
+
+  /* ---- 3 できること (4 つの実写) */
+  #s-can .tiles { position:absolute; left:140px; right:140px; top:400px; display:grid; grid-template-columns:repeat(4,1fr); gap:34px; }
+  #s-can .tile .frame { aspect-ratio:4/3; border-radius:14px; }
+  #s-can .tile .t { font-weight:700; font-size:36px; margin-top:26px; }
+  #s-can .tile .d { font-size:25px; line-height:1.55; color:var(--dim); margin-top:10px; }
+  #s-can .real { position:absolute; right:140px; top:360px; font-size:16px; color:var(--dim); letter-spacing:.1em; }
+
+  /* ---- 4 安心 */
+  #s-trust .rows { position:absolute; left:140px; top:440px; width:1100px; display:flex; flex-direction:column; gap:40px; }
+  #s-trust .row { display:flex; gap:34px; align-items:baseline; }
+  #s-trust .row .k { font-family:var(--en); font-size:22px; letter-spacing:.3em; color:var(--acc); width:70px; flex:none; }
+  #s-trust .row .t { font-size:46px; font-weight:700; }
+  #s-trust .row .d { font-size:25px; color:var(--dim); margin-top:10px; }
+  #s-trust .orb { position:absolute; right:-300px; top:150px; width:1300px; opacity:.9;
+    -webkit-mask-image:radial-gradient(circle closest-side, #000 62%, transparent 100%); mask-image:radial-gradient(circle closest-side, #000 62%, transparent 100%); }
+  #s-trust .next { position:absolute; right:140px; bottom:110px; font-family:var(--en); font-size:22px; letter-spacing:.3em; color:var(--acc); }
+
+  /* ---- 5 実演 */
+  #s-demo .live { display:inline-flex; align-items:center; gap:14px; font-family:var(--en); font-weight:700; font-size:22px; letter-spacing:.3em; color:var(--paper); }
+  #s-demo .live i { width:14px; height:14px; border-radius:50%; background:var(--red); box-shadow:0 0 18px var(--red); animation:pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity:.35; } }
+  #s-demo .steps { position:absolute; left:140px; right:140px; top:172px; display:flex; flex-wrap:wrap; gap:10px; }
+  #s-demo .steps span { cursor:pointer; font-family:var(--en); font-size:19px; letter-spacing:.1em; padding:9px 16px; border:1.5px solid var(--faint); border-radius:30px; color:var(--dim); transition:all .3s; }
+  #s-demo .steps span.done { color:var(--paper); border-color:rgba(243,239,230,.35); }
+  #s-demo .steps span.cur { color:#111; background:var(--acc); border-color:var(--acc); }
+  #s-demo .card { position:absolute; left:140px; top:300px; width:700px; }
+  #s-demo .card .no { font-family:var(--en); font-weight:700; font-size:150px; line-height:1; color:var(--acc); }
+  #s-demo .card .t { white-space:pre-line; font-weight:800; font-size:82px; line-height:1.18; margin-top:22px; }
+  #s-demo .say { white-space:pre-line; display:inline-block; margin-top:46px; padding:22px 32px; border-radius:26px 26px 26px 6px; background:rgba(243,239,230,.08); border:1.5px solid rgba(243,239,230,.2);
+    font-family:var(--serif); font-weight:600; font-size:42px; line-height:1.35; max-width:700px; }
+  #s-demo .say:empty { display:none; }
+  #s-demo .d { white-space:pre-line; font-size:30px; line-height:1.6; color:var(--dim); margin-top:34px; max-width:700px; }
+  #s-demo .card.swap { animation:swap .55s cubic-bezier(.2,.8,.2,1); }
+  @keyframes swap { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:none; } }
+  #s-demo .panel { position:absolute; right:140px; top:250px; width:840px; height:630px; }
+  #s-demo .panel .frame { width:100%; height:100%; }
+  #s-demo .panel video, #s-demo .panel img { position:absolute; inset:0; }
+  #s-demo .panel .label { position:absolute; left:22px; top:20px; z-index:2; font-family:var(--en); font-size:17px; letter-spacing:.24em; padding:8px 14px; border-radius:20px; background:rgba(0,0,0,.55); color:var(--paper); }
+  #s-demo .panel .label:empty { display:none; }
+
+  /* ---- 6 締め */
+  #s-end .verbs { position:absolute; left:140px; top:300px; font-weight:700; font-size:66px; letter-spacing:.06em; color:var(--dim); }
+  #s-end .big { position:absolute; left:140px; top:400px; font-family:var(--serif); font-weight:600; font-size:140px; letter-spacing:.06em; line-height:1.15; }
+  #s-end .who { position:absolute; left:140px; top:770px; font-size:34px; }
+  #s-end .who b { font-weight:700; }
+  #s-end .ask { position:absolute; left:140px; top:850px; font-size:30px; color:var(--acc); }
+  #s-end .photo { position:absolute; right:140px; top:250px; width:560px; height:620px; transform:rotate(-2deg); }
+
+  /* 黒い画面・操作の一覧・知らせ */
+  #black { position:fixed; inset:0; background:#000; z-index:50; display:none; }
+  /* 実演を選ぶ (D)。当日の様子に合わせて、やる手順を選ぶ */
+  #picker { position:fixed; inset:0; z-index:60; display:none; place-items:center; background:rgba(0,0,0,.72); }
+  #picker .box { background:#141416; border:1px solid var(--faint); border-radius:18px; padding:32px 40px; min-width:640px; font-size:20px; }
+  #picker h3 { font-size:24px; margin-bottom:6px; }
+  #picker .hint { color:var(--dim); font-size:15px; margin-bottom:18px; }
+  #picker label { display:flex; align-items:center; gap:14px; padding:10px 12px; border-radius:10px; cursor:pointer; }
+  #picker label:hover { background:rgba(243,239,230,.06); }
+  #picker input { width:22px; height:22px; accent-color:var(--acc); }
+  #picker .k { font-family:var(--en); color:var(--acc); width:26px; }
+  #picker .sec { margin-left:auto; color:var(--dim); font-size:16px; }
+  #picker .sum, #pv .sum { margin-top:16px; font-size:18px; }
+  .sum.over { color:var(--red); }
+  #help { position:fixed; inset:0; z-index:60; display:none; place-items:center; background:rgba(0,0,0,.72); }
+  #help .box { background:#141416; border:1px solid var(--faint); border-radius:18px; padding:36px 44px; font-size:18px; line-height:2; min-width:520px; }
+  #help kbd { display:inline-block; min-width:76px; font-family:var(--en); color:var(--acc); }
+  #toast { position:fixed; left:50%; bottom:28px; transform:translateX(-50%); z-index:70; background:rgba(20,20,22,.92); border:1px solid var(--faint); color:var(--paper);
+    padding:12px 22px; border-radius:24px; font-size:15px; opacity:0; transition:opacity .3s; pointer-events:none; }
+  #toast.show { opacity:1; }
+  #grain { position:absolute; inset:0; z-index:4; pointer-events:none; opacity:.07; mix-blend-mode:overlay; }
+
+  /* 発表者の窓 (?presenter) */
+  body.presenter { overflow:auto; background:#0E0E10; cursor:auto; }
+  body.presenter #stage, body.presenter #black { display:none; }
+  #pv { display:none; padding:28px 34px; font-size:18px; color:var(--paper); }
+  body.presenter #pv { display:block; }
+  #pv .top { display:flex; justify-content:space-between; align-items:baseline; gap:20px; }
+  #pv .clock { font-family:var(--en); font-weight:700; font-size:64px; letter-spacing:.02em; }
+  #pv .clock.over { color:var(--red); }
+  #pv .goal { color:var(--dim); font-size:16px; margin-top:4px; }
+  #pv .cur { font-size:15px; letter-spacing:.2em; color:var(--acc); font-family:var(--en); margin-top:22px; }
+  #pv .script { font-size:30px; line-height:1.7; margin-top:10px; white-space:pre-wrap; }
+  #pv .next { margin-top:26px; color:var(--dim); font-size:17px; }
+  #pv .demo { margin-top:16px; display:flex; flex-direction:column; gap:6px; }
+  #pv .demo label { display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:8px; color:var(--dim); font-size:17px; cursor:pointer; }
+  #pv .demo label.cur { background:rgba(255,185,56,.14); color:var(--paper); }
+  #pv .demo label.off { opacity:.45; }
+  #pv .demo input { width:18px; height:18px; accent-color:var(--acc); }
+  #pv .demo .go { margin-left:auto; font-size:14px; padding:4px 12px; }
+  #pv .clock.warn { color:var(--acc); }
+  #pv .clock.paused { opacity:.5; }
+  #pv .keys { margin-top:28px; color:var(--dim); font-size:14px; line-height:1.9; border-top:1px solid var(--faint); padding-top:14px; }
+  #pv button { background:#1d1d20; color:var(--paper); border:1px solid var(--faint); border-radius:10px; font-size:17px; padding:10px 18px; margin-right:8px; cursor:pointer; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rv > *, .fade, .hl { animation:none !important; transform:none !important; opacity:1 !important; }
+    .hl { width:var(--w,120px) !important; }
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="grain"></canvas>
+  <div class="bar"><div class="en">RIGEL — <b>AgentPhone × AgentARM</b></div>
+    <div class="right"><div class="en" id="chapter"></div>
+      <div id="timer" class="idle noclick" title="クリックか T で始める・止める。R ではじめから">
+        <span class="t" id="tm-t">0:00</span><span class="of" id="tm-of">/ 3:00</span><span class="ph" id="tm-ph"></span>
+        <div class="track"><div class="fill" id="tm-fill"></div><div class="tick" id="tm-tick"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 0 表紙 -->
+  <section class="slide" id="s-title" data-chapter="MAKERS COLOSSEUM #2">
+    <div class="orbglow"></div>
+    <div class="left">
+      <div class="en rv"><span style="--d:.1s">A body for your phone</span></div>
+      <div class="rv" style="margin-top:30px"><span class="name" style="--d:.25s">リゲル</span></div>
+      <div class="hl" style="--d:.6s;--w:360px;margin-top:40px"></div>
+      <div class="rv"><span class="tag" style="--d:.7s">スマホに、からだを。</span></div>
+      <div class="rv"><span class="sub" style="--d:.9s"><b>AgentPhone</b>　AI が、スマホを操作する</span></div>
+      <div class="rv"><span class="sub" style="--d:1s;margin-top:10px"><b>AgentARM</b>　スマホを動かす、3 軸の腕</span></div>
+    </div>
+    <div class="photo frame fade" style="--d:.4s"><img src="assets/img/arm_front.jpg" alt="腕に載ったスマホと、画面のリゲル"></div>
+    <div class="event fade" style="--d:1.1s">第2回 メーカーズコロシアム　｜　2026.12.04　｜　大田区</div>
+  </section>
+
+  <!-- 1 課題 -->
+  <section class="slide" id="s-problem" data-chapter="01 — Problem">
+    <div class="en rv"><span>Problem</span></div>
+    <div class="rv" style="margin-top:26px"><h2 style="--d:.1s">スマホは便利になった。<br><span class="acc">でも、むずかしくなった。</span></h2></div>
+    <div class="quotes">
+      <div class="rv"><span class="q" style="--d:.4s">「画面が急に暗い」</span></div>
+      <div class="rv"><span class="q" style="--d:.55s">「広告が消えない」</span></div>
+      <div class="rv"><span class="q" style="--d:.7s">「知らない番号から電話」</span></div>
+    </div>
+    <div class="who fade" style="--d:.9s">― 離れて暮らす親から、毎週のように届く相談</div>
+    <div class="stats">
+      <div class="fade" style="--d:.8s"><div class="num">51.4<small>%</small></div><div class="cap">スマホを持つ 60〜79 歳のうち、<br>ほかの人の手助けを受けた人<span>（2024）</span></div></div>
+      <div class="fade" style="--d:1s"><div class="num">1,414<small>億円</small></div><div class="cap">2025 年の特殊詐欺の被害（過去最悪）。<br>約 7 割は、警察官をかたる手口<span>（暫定値）</span></div></div>
+    </div>
+    <div class="src">出典: MMD研究所「2024年シニアのスマートフォンの利用に関する調査」／ 警察庁「令和7年における特殊詐欺の認知・検挙状況等について」（暫定値）</div>
+  </section>
+
+  <!-- 2 3 つでひとつ -->
+  <section class="slide" id="s-three" data-chapter="02 — How it works">
+    <div class="en rv"><span>How it works</span></div>
+    <div class="rv" style="margin-top:26px"><h2 style="--d:.1s">話す。操作する。動く。<span class="acc">3 つで、ひとつ。</span></h2></div>
+    <div class="cols">
+      <div class="col fade" style="--d:.35s">
+        <div class="no">01 — VOICE</div><div class="verb">話す</div>
+        <div class="who">AI の声</div>
+        <div class="what">Claude や ChatGPT と、<br>声で話すだけ。名前は「リゲル」</div>
+      </div>
+      <div class="col fade" style="--d:.55s">
+        <div class="no">02 — HANDS</div><div class="verb">操作する</div>
+        <div class="who">AgentPhone</div>
+        <div class="what">スマホのアプリ。AI が画面を読み、<br>どのアプリでも押す・入力する</div>
+      </div>
+      <div class="col fade" style="--d:.75s">
+        <div class="no">03 — BODY</div><div class="verb">動く</div>
+        <div class="who">AgentARM</div>
+        <div class="what">3 軸の腕。向き・高さ・画面の回転。<br>腕のボードが、耳と安全を受け持つ</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 できること -->
+  <section class="slide" id="s-can" data-chapter="03 — What it does">
+    <div class="en rv"><span>What it does</span></div>
+    <div class="rv" style="margin-top:26px"><h2 style="--d:.1s">リゲルに、<span class="acc">頼めること</span></h2></div>
+    <div class="real fade" style="--d:.3s">実写</div>
+    <div class="tiles">
+      <div class="tile fade" style="--d:.3s"><div class="frame"><video data-loop src="assets/video/loop_turn.mp4" muted loop playsinline preload="auto"></video></div>
+        <div class="t">呼べば、向く</div><div class="d">「ねえ、リゲル」を聞き分け、<br>本人のほうへ振り向く</div></div>
+      <div class="tile fade" style="--d:.45s"><div class="frame"><video data-loop src="assets/video/loop_bright.mp4" muted loop playsinline preload="auto"></video></div>
+        <div class="t">頼めば、直す</div><div class="d">「画面が暗い」と言えば、<br>設定を開いて明るくする</div></div>
+      <div class="tile fade" style="--d:.6s"><div class="frame"><video data-loop src="assets/video/loop_call.mp4" muted loop playsinline preload="auto"></video></div>
+        <div class="t">電話の代役</div><div class="d">知らない電話に代わりに出て、<br>詐欺の疑いを見分ける</div></div>
+      <div class="tile fade" style="--d:.75s"><div class="frame"><video data-loop src="assets/video/loop_dance.mp4" muted loop playsinline preload="auto"></video></div>
+        <div class="t">曲に、のる</div><div class="d">曲の拍に合わせて、<br>腕が踊る</div></div>
+    </div>
+  </section>
+
+  <!-- 4 安心 -->
+  <section class="slide" id="s-trust" data-chapter="04 — Trust">
+    <img class="orb fade" style="--d:.3s" src="assets/img/rigel_orb.jpg" alt="">
+    <div class="en rv"><span>Trust &amp; Safety</span></div>
+    <div class="rv" style="margin-top:26px"><h2 style="--d:.1s">任せても、<span class="acc">安心</span>。</h2></div>
+    <div class="rows">
+      <div class="row fade" style="--d:.35s"><div class="k">01</div><div><div class="t">取り消せない操作は、本人が指紋で</div><div class="d">送る・買う・消す前に、かならず確かめる</div></div></div>
+      <div class="row fade" style="--d:.5s"><div class="k">02</div><div><div class="t">したことは、すべて記録に</div><div class="d">家族があとから見て、確かめられる</div></div></div>
+      <div class="row fade" style="--d:.65s"><div class="k">03</div><div><div class="t">腕は、止めるボタンですぐ止まる</div><div class="d">合図が 0.3 秒とぎれたら、その場で保つ</div></div></div>
+    </div>
+    <div class="next fade" style="--d:1s">NEXT — LIVE DEMO →</div>
+  </section>
+
+  <!-- 5 実演 -->
+  <section class="slide" id="s-demo" data-chapter="05 — Live demo">
+    <div class="live"><i></i>LIVE DEMO</div>
+    <div class="steps noclick" id="steps"></div>
+    <div class="card" id="card">
+      <div class="no" id="d-no"></div>
+      <div class="t" id="d-t"></div>
+      <div class="say" id="d-say"></div>
+      <div class="d" id="d-d"></div>
+    </div>
+    <div class="panel noclick">
+      <div class="frame">
+        <img id="still" src="assets/img/arm_front.jpg" alt="">
+        <video id="backup" playsinline style="display:none"></video>
+      </div>
+      <div class="label" id="plabel"></div>
+    </div>
+  </section>
+
+  <!-- 6 締め -->
+  <section class="slide" id="s-end" data-chapter="Thank you">
+    <div class="verbs rv"><span style="--d:.1s">話す。操作する。動く。</span></div>
+    <div class="rv"><span class="big" style="--d:.35s">スマホに、<br>からだを。</span></div>
+    <div class="who fade" style="--d:.8s"><b>リゲル</b>　—　AgentPhone × AgentARM</div>
+    <div class="ask fade" style="--d:1s">展示で、リゲルに話しかけてみてください。</div>
+    <div class="photo frame fade" style="--d:.5s"><img src="assets/img/arm_front.jpg" alt=""></div>
+  </section>
+
+  <div id="count"></div>
+</div>
+
+<div id="black"></div>
+<div id="help"><div class="box">
+  <div><kbd>→ / Space</kbd>次へ（クリックでも）</div>
+  <div><kbd>←</kbd>戻る</div>
+  <div><kbd>F</kbd>全画面</div>
+  <div><kbd>P</kbd>発表者の窓（台本・時間・実演の選択）</div>
+  <div><kbd>T</kbd>タイマーを始める・止める（右上のタイマーをクリックでも）　<kbd>R</kbd>タイマーをはじめから</div>
+  <div><kbd>D</kbd>実演の手順を選ぶ（当日の様子に合わせて）</div>
+  <div><kbd>B</kbd>画面を黒く（もう一度で戻す）</div>
+  <div><kbd>V</kbd>予備の映像を流す・止める（実演）</div>
+  <div><kbd>1〜7</kbd>その番号のスライドへ　<kbd>H</kbd>この一覧</div>
+</div></div>
+<div id="picker"><div class="box">
+  <h3>実演の手順を選ぶ</h3>
+  <div class="hint">数字のキーかクリックで、やる・やらないを切り替えます。D か Esc で閉じます。選んだものは、このパソコンに覚えておきます。</div>
+  <div id="pk-list"></div>
+  <div class="sum" id="pk-sum"></div>
+</div></div>
+<div id="toast"></div>
+
+<div id="pv">
+  <div class="top">
+    <div><div class="clock" id="pv-clock">0:00</div><div class="goal" id="pv-goal"></div></div>
+    <div><button data-k="ArrowLeft">← 戻る</button><button data-k="ArrowRight">次へ →</button><button data-k="t" id="pv-tbtn">タイマーを始める</button><button data-k="r">はじめから</button></div>
+  </div>
+  <div class="cur" id="pv-cur"></div>
+  <div class="script" id="pv-script"></div>
+  <div class="next" id="pv-next"></div>
+  <div class="cur">実演の手順（チェックしたものだけ、この順でやる）</div>
+  <div class="demo" id="pv-demo"></div>
+  <div class="sum" id="pv-sum"></div>
+  <div class="keys">この窓でも ← → で進められます。T タイマー ・ R はじめから ・ B 黒い画面 ・ V 予備の映像 ・ F 全画面 (発表の窓で)</div>
+</div>
+
+<script>
+/* ---------------------------------------------------------------- 持ち時間 (秒) */
+const TOTAL_SEC = 180;      // 全体 3 分
+const EXPLAIN_SEC = 60;     // 前半の説明 1 分 (実演の前のスライドでこれを過ぎると、タイマーが知らせる)
+
+/* ---------------------------------------------------------------- 台本 (1 分 ≒ 300 字) */
+const NOTES = [
+  "リゲルは、スマホに「からだ」をあたえる、AI の相棒です。",
+  "離れて暮らす私の両親から、毎週のように「画面が暗い」「知らない番号から電話が来た」と相談が来ます。60〜79 歳の半分が、スマホで人の手を借りています。",
+  "リゲルは 3 つでひとつです。AI と声で話すと、AgentPhone が AI の手になってスマホを操作し、AgentARM の腕が動きます。",
+  "本人の声にだけ振り向き、頼めば画面を直し、知らない電話には代わりに出て詐欺を断ります。曲に合わせて踊ることもできます。",
+  "取り消せない操作は本人が指紋で確かめ、したことはすべて記録に残ります。では、実際に見てください。",
+  "",   // 実演は DEMO の note
+  "ありがとうございました。展示で、ぜひリゲルに話しかけてみてください。",
+];
+
+/*
+ * ---------------------------------------------------------------- 実演の手順
+ * on: はじめから選んでおくか (当日は D か発表者の窓で選び直せる)。sec: 目安の秒。backup: うまくいかないときの実写 (無ければ "")。
+ * card: カードの見出し (長いときに \n で折り返す所を決める。無ければ title)
+ * 言葉 (say) は本番の言い方に合わせて直す
+ */
+const DEMO = [
+  { id:"turn", title:"呼べば、向く", say:"「ねえ、リゲル」", sub:"本人の声だけを聞き分けて、こちらを向きます", sec:20, on:true,
+    backup:"assets/video/backup_turn.mp4", note:"「ねえ、リゲル」と呼ぶ。会場がうるさいときは、ホームのリゲルをタップ。振り向いて挨拶したら次へ。" },
+  { id:"bright", title:"頼めば、直す", say:"「画面が暗いから、明るくして」", sub:"AI が画面を見て、設定を開き、明るさを上げます", sec:40, on:true,
+    backup:"assets/video/backup_bright.mp4", note:"頼んだら、待つ間に「いま AI が画面を読んで、設定を開いています」と話す。明るくなったら次へ。" },
+  { id:"shop", title:"いつもの買い物", say:"「まいにちマートで、\nいつものお米を買って」", sub:"商品を選び、注文の前に、本人に確かめます", sec:40, on:false,
+    backup:"assets/video/backup_shop.mp4", note:"頼んだら、待つ間に「見本の店のアプリなので、本物の注文はしません」と話す。確かめられたら「注文して」→ スマホで承認。" },
+  { id:"line", title:"LINE で写真を送る", card:"LINE で\n写真を送る", say:"「花の写真を、\nLINE で家族に送って」", sub:"言葉で写真を探し、送る前に、本人が確かめます", sec:45, on:false,
+    backup:"", note:"写真と送り先は、前もって決めておく (送ってよい相手に)。送る前の承認で指紋を見せる。予備の映像はありません。" },
+  { id:"call", title:"電話の代役", say:"", sub:"知らない番号の電話に、リゲルが代わりに出て、\n詐欺の疑いを見分けます", sec:35, on:true,
+    backup:"assets/video/backup_call.mp4", note:"もう 1 台のスマホから電話をかける。「警察です。口座の番号を教えてください」と言うと、リゲルが断る。" },
+  { id:"dance", title:"曲に、のる", say:"「曲をかけて、踊って」", sub:"曲の拍に合わせて、振り付けを作って踊ります", sec:25, on:true,
+    backup:"assets/video/backup_dance.mp4", note:"踊り始めたら「ありがとうございました」で締める (→ で最後のスライドへ)。" },
+];
+
+/* ---------------------------------------------------------------- ここから下は動き */
+const presenter = new URLSearchParams(location.search).has("presenter");
+const slides = [...document.querySelectorAll(".slide")];
+const DEMO_AT = slides.findIndex(s => s.id === "s-demo");
+const STORE = "rigel-mc2026-demo";
+let i = 0, step = 0;
+let acc = 0, runFrom = 0;     // タイマー: 止めるまでにたまった時間と、動かし始めた時刻
+let on = DEMO.filter(d => d.on).map(d => d.id);
+try { const saved = JSON.parse(localStorage.getItem(STORE) || "null"); if (Array.isArray(saved)) on = saved.filter(id => DEMO.some(d => d.id === id)); } catch (e) {}
+
+if (presenter) document.body.classList.add("presenter");
+
+const pad2 = n => String(n).padStart(2, "0");
+const active = () => DEMO.filter(d => on.includes(d.id));
+const sumSec = () => active().reduce((a, d) => a + d.sec, 0);
+
+function fit() {
+  const st = document.getElementById("stage");
+  const k = Math.min(innerWidth / 1920, innerHeight / 1080);
+  st.style.transform = `translate(-50%,-50%) scale(${k})`;
+  st.style.transformOrigin = "50% 50%";
+}
+addEventListener("resize", fit); fit();
+
+function toast(s) {
+  const el = document.getElementById("toast");
+  el.textContent = s; el.classList.add("show");
+  clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("show"), 2200);
+}
+
+/* ---- タイマー (全スライド共通・右上) */
+const elapsed = () => acc + (runFrom ? Date.now() - runFrom : 0);
+function timerToggle() {
+  if (runFrom) { acc = elapsed(); runFrom = 0; toast("タイマーを止めました"); }
+  else { runFrom = Date.now(); toast("タイマーを始めました"); }
+  sync(); drawTimer();
+}
+function timerReset() { acc = 0; runFrom = 0; toast("タイマーをはじめからにしました"); sync(); drawTimer(); }
+function fmt(ms) { const s = Math.max(0, Math.floor(ms / 1000)); return Math.floor(s / 60) + ":" + pad2(s % 60); }
+/** 今の様子: 説明のスライドで 1 分に近い・過ぎた、全体で 3 分に近い・過ぎた */
+function timerState(ms) {
+  const explain = i < DEMO_AT;
+  if (ms > TOTAL_SEC * 1000 || (explain && ms > EXPLAIN_SEC * 1000)) return "over";
+  if (ms > (TOTAL_SEC - 30) * 1000 || (explain && ms > (EXPLAIN_SEC - 10) * 1000)) return "warn";
+  return "";
+}
+function drawTimer() {
+  const ms = elapsed(), st = timerState(ms);
+  const explain = i < DEMO_AT;
+  const phase = explain ? (ms > EXPLAIN_SEC * 1000 ? "説明が長い" : "説明 〜" + fmt(EXPLAIN_SEC * 1000)) : i === DEMO_AT ? "実演" : "";
+  if (!presenter) {
+    const el = document.getElementById("timer");
+    el.className = "noclick " + (st || "") + (!runFrom && !acc ? " idle" : !runFrom ? " paused" : "");
+    document.getElementById("tm-t").textContent = fmt(ms);
+    document.getElementById("tm-of").textContent = "/ " + fmt(TOTAL_SEC * 1000);
+    document.getElementById("tm-ph").textContent = phase;
+    document.getElementById("tm-fill").style.width = Math.min(100, ms / (TOTAL_SEC * 10)) + "%";
+    document.getElementById("tm-tick").style.left = (EXPLAIN_SEC / TOTAL_SEC * 100) + "%";
+  } else {
+    const c = document.getElementById("pv-clock");
+    c.textContent = fmt(ms) + " / " + fmt(TOTAL_SEC * 1000);
+    c.className = "clock " + (st || "") + (runFrom ? "" : " paused");
+    document.getElementById("pv-goal").textContent = `${phase || "—"}　目安: 説明は ${fmt(EXPLAIN_SEC * 1000)} まで ・ 全体で ${fmt(TOTAL_SEC * 1000)}` + (runFrom ? "" : (acc ? "　（止めています）" : "　（まだ始めていません）"));
+    document.getElementById("pv-tbtn").textContent = runFrom ? "タイマーを止める" : "タイマーを始める";
+  }
+}
+setInterval(drawTimer, 200);
+
+/* ---- スライド */
+function show(n, st = 0) {
+  n = Math.max(0, Math.min(slides.length - 1, n));
+  const changed = n !== i || !slides[n].classList.contains("on");
+  i = n; step = Math.max(0, Math.min(st, active().length - 1));
+  if (changed) slides.forEach((s, k) => {
+    s.classList.toggle("on", k === i);
+    s.querySelectorAll("video[data-loop]").forEach(v => { if (k === i) { v.currentTime = 0; v.play().catch(() => {}); } else v.pause(); });
+  });
+  document.getElementById("chapter").textContent = slides[i].dataset.chapter || "";
+  document.getElementById("count").textContent = pad2(i + 1) + " / " + pad2(slides.length);
+  if (i === DEMO_AT) renderStep(); else stopBackup();
+  if (i > 0 && !runFrom && !acc) runFrom = Date.now();    // 表紙から進んだら、タイマーを自動で始める
+  drawTimer(); sync();
+}
+
+function renderStep() {
+  const list = active();
+  const steps = document.getElementById("steps");
+  steps.innerHTML = list.map((x, k) => `<span data-k="${k}" class="${k < step ? "done" : k === step ? "cur" : ""}">${pad2(k + 1)}　${x.title}</span>`).join("");
+  steps.querySelectorAll("span").forEach(el => el.addEventListener("click", () => show(DEMO_AT, +el.dataset.k)));
+  const d = list[step];
+  document.getElementById("d-no").textContent = d ? pad2(step + 1) : "";
+  document.getElementById("d-t").textContent = d ? (d.card || d.title) : "実演の手順が選ばれていません";
+  document.getElementById("d-say").textContent = d ? (d.say || "") : "";
+  document.getElementById("d-d").textContent = d ? d.sub : "D キーで、やる手順を選んでください";
+  const card = document.getElementById("card");
+  card.classList.remove("swap"); void card.offsetWidth; card.classList.add("swap");
+  stopBackup();
+}
+
+function next() {
+  if (i === DEMO_AT && step < active().length - 1) return show(i, step + 1);
+  show(i + 1, 0);
+}
+function prev() {
+  if (i === DEMO_AT && step > 0) return show(i, step - 1);
+  const n = i - 1;
+  show(n, n === DEMO_AT ? active().length - 1 : 0);
+}
+
+/* ---- 実演を選ぶ (当日の様子に合わせて) */
+function toggleDemo(id) {
+  const cur = active()[step];
+  on = on.includes(id) ? on.filter(x => x !== id) : DEMO.filter(d => d.id === id || on.includes(d.id)).map(d => d.id);
+  try { localStorage.setItem(STORE, JSON.stringify(on)); } catch (e) {}
+  const list = active();
+  step = cur && list.indexOf(cur) >= 0 ? list.indexOf(cur) : Math.min(step, Math.max(0, list.length - 1));
+  if (i === DEMO_AT) renderStep();
+  renderPicker(); sync();
+}
+function jumpDemo(id) {
+  const k = active().findIndex(d => d.id === id);
+  if (k >= 0) show(DEMO_AT, k);
+}
+function sumText() {
+  const s = sumSec(), budget = TOTAL_SEC - EXPLAIN_SEC;
+  return { text: `選んだ実演の目安: ${fmt(s * 1000)}（実演の持ち時間 ${fmt(budget * 1000)}）` + (s > budget ? `　${fmt((s - budget) * 1000)} 長いので、どれかを外す` : ""), over: s > budget };
+}
+function renderPicker() {
+  if (presenter) return;
+  document.getElementById("pk-list").innerHTML = DEMO.map((d, k) =>
+    `<label><input type="checkbox" data-id="${d.id}" ${on.includes(d.id) ? "checked" : ""}><span class="k">${k + 1}</span>${d.title}<span class="sec">${d.sec} 秒${d.backup ? "" : "・予備の映像なし"}</span></label>`).join("");
+  document.querySelectorAll("#pk-list input").forEach(el => el.addEventListener("change", () => toggleDemo(el.dataset.id)));
+  const t = sumText(), el = document.getElementById("pk-sum");
+  el.textContent = t.text; el.classList.toggle("over", t.over);
+}
+function picker(open) {
+  const el = document.getElementById("picker");
+  const show = open === undefined ? el.style.display !== "grid" : open;
+  el.style.display = show ? "grid" : "none";
+  if (show) renderPicker();
+}
+
+/* ---- 予備の映像 (うまくいかなかったとき、その手順の実写を音つきで流す) */
+function backup() {
+  if (i !== DEMO_AT) return;
+  const v = document.getElementById("backup");
+  if (v.style.display === "block") return stopBackup();
+  const d = active()[step];
+  if (!d || !d.backup) return toast("この手順には、予備の映像がありません");
+  v.src = d.backup; v.currentTime = 0; v.style.display = "block";
+  v.play().catch(() => toast("映像を流せません"));
+  panelLabel();
+}
+function stopBackup() {
+  const v = document.getElementById("backup");
+  v.pause(); v.style.display = "none"; panelLabel();
+}
+document.getElementById("backup").addEventListener("ended", stopBackup);
+function panelLabel() {
+  const b = document.getElementById("backup").style.display === "block";
+  document.getElementById("plabel").textContent = b ? "RECORDED" : "";
+}
+
+/* ---- 発表者の窓 (台本・時間・実演の選択)。file:// でも動くよう、窓どうしは postMessage でやり取りする */
+let pv = null;
+function openPresenter() {
+  pv = open(location.href.split("?")[0] + "?presenter", "rigel-presenter", "width=980,height=860");
+  setTimeout(sync, 600);
+}
+function sync() {
+  if (presenter) return;
+  if (pv && !pv.closed) pv.postMessage({ type: "state", i, step, acc, runFrom, on }, "*");
+}
+addEventListener("message", e => {
+  const m = e.data || {};
+  if (!presenter) {
+    if (m.type === "key") key({ key: m.key, preventDefault() {} });
+    if (m.type === "toggle") toggleDemo(m.id);
+    if (m.type === "jump") jumpDemo(m.id);
+    if (m.type === "hello") { pv = e.source; sync(); }
+  } else if (m.type === "state") {
+    i = m.i; step = m.step; acc = m.acc; runFrom = m.runFrom; on = m.on; renderPv(); drawTimer();
+  }
+});
+
+function key(e) {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;       // Ctrl+C などは、ふつうの操作のまま (スライドの操作と取り違えない)
+  const k = e.key;
+  const pickerOpen = document.getElementById("picker").style.display === "grid";
+  if (pickerOpen) {
+    if (/^[1-9]$/.test(k) && DEMO[+k - 1]) return toggleDemo(DEMO[+k - 1].id);
+    if (k === "Escape" || k === "d" || k === "D" || k === "Enter") return picker(false);
+    return;
+  }
+  if (["ArrowRight", "PageDown", " ", "Enter", "ArrowDown"].includes(k)) { e.preventDefault(); next(); }
+  else if (["ArrowLeft", "PageUp", "Backspace", "ArrowUp"].includes(k)) { e.preventDefault(); prev(); }
+  else if (k === "Home") show(0);
+  else if (k === "End") show(slides.length - 1);
+  else if (/^[1-9]$/.test(k) && +k <= slides.length) show(+k - 1, 0);
+  else if (k === "f" || k === "F") { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }
+  else if (k === "b" || k === "B") { const b = document.getElementById("black"); b.style.display = b.style.display === "block" ? "none" : "block"; }
+  else if (k === "v" || k === "V") backup();
+  else if (k === "p" || k === "P") openPresenter();
+  else if (k === "t" || k === "T") timerToggle();
+  else if (k === "r" || k === "R") timerReset();
+  else if (k === "d" || k === "D") picker();
+  else if (k === "h" || k === "H" || k === "?") { const h = document.getElementById("help"); h.style.display = h.style.display === "grid" ? "none" : "grid"; }
+  else if (k === "Escape") document.getElementById("help").style.display = "none";
+}
+
+function renderPv() {
+  const title = s => (s.querySelector("h2, .name, .big, .live") || {}).textContent || "";
+  const list = active(), d = list[step];
+  document.getElementById("pv-cur").textContent = `${i + 1} / ${slides.length}　${slides[i].dataset.chapter || ""}` + (i === DEMO_AT && d ? `　— 手順 ${step + 1} / ${list.length}` : "");
+  document.getElementById("pv-script").textContent = i === DEMO_AT ? (d ? `${d.title}（約 ${d.sec} 秒）\n${d.note}` + (d.backup ? "\nうまくいかなければ V で予備の映像。" : "") : "実演の手順が選ばれていません") : NOTES[i];
+  const n = slides[i + 1];
+  document.getElementById("pv-next").textContent = (i === DEMO_AT && step < list.length - 1) ? `次: 手順 ${step + 2}「${list[step + 1].title}」` : n ? `次: ${title(n).replace(/\s+/g, " ").trim()}` : "最後のスライドです";
+  document.getElementById("pv-demo").innerHTML = DEMO.map(x => {
+    const k = list.indexOf(x), cur = i === DEMO_AT && x === d;
+    return `<label class="${cur ? "cur" : ""} ${k < 0 ? "off" : ""}"><input type="checkbox" data-id="${x.id}" ${k >= 0 ? "checked" : ""}>` +
+      `${k >= 0 ? (k + 1) + "." : "—"} ${x.title}　${(x.say || "").replace(/\n/g, "")}　（${x.sec} 秒${x.backup ? "" : "・予備なし"}）` +
+      (k >= 0 ? `<button class="go" data-id="${x.id}">ここへ</button>` : "") + `</label>`;
+  }).join("");
+  document.querySelectorAll("#pv-demo input").forEach(el => el.addEventListener("change", () => opener && opener.postMessage({ type: "toggle", id: el.dataset.id }, "*")));
+  document.querySelectorAll("#pv-demo .go").forEach(el => el.addEventListener("click", ev => { ev.preventDefault(); opener && opener.postMessage({ type: "jump", id: el.dataset.id }, "*"); }));
+  const t = sumText(), el = document.getElementById("pv-sum");
+  el.textContent = t.text; el.className = "sum" + (t.over ? " over" : "");
+  drawTimer();
+}
+
+if (!presenter) {
+  addEventListener("keydown", key);
+  document.getElementById("stage").addEventListener("click", e => { if (!e.target.closest(".noclick")) next(); });
+  document.getElementById("timer").addEventListener("click", timerToggle);
+  document.getElementById("black").addEventListener("click", () => document.getElementById("black").style.display = "none");
+  document.getElementById("picker").addEventListener("click", e => { if (e.target.id === "picker") picker(false); });
+  // フィルムの粒子
+  const g = document.getElementById("grain"); g.width = 1920 / 2; g.height = 1080 / 2;
+  const cx = g.getContext("2d"), img = cx.createImageData(g.width, g.height);
+  for (let p = 0; p < img.data.length; p += 4) { const v = Math.random() * 255; img.data[p] = img.data[p + 1] = img.data[p + 2] = v; img.data[p + 3] = 255; }
+  cx.putImageData(img, 0, 0); g.style.width = "1920px"; g.style.height = "1080px";
+  show(0);
+  setTimeout(() => toast("H で操作の一覧 ・ D で実演を選ぶ ・ P で発表者の窓"), 800);
+} else {
+  // 発表者の窓: キーは発表の窓に送る
+  const send = k => window.opener && window.opener.postMessage({ type: "key", key: k }, "*");
+  addEventListener("keydown", e => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (["ArrowRight","ArrowLeft","PageDown","PageUp"," ","Enter","b","B","v","V","t","T","r","R","Home","End"].includes(e.key)) { e.preventDefault(); send(e.key); }
+  });
+  document.querySelectorAll(".top button").forEach(b => b.addEventListener("click", () => send(b.dataset.k)));
+  if (window.opener) window.opener.postMessage({ type: "hello" }, "*");
+  renderPv();
+}
+</script>
+</body>
+</html>
